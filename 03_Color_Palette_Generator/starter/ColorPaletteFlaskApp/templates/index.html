@@ -6,32 +6,119 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Color Palette Generator</title>
   <style>
+    html,
+    body {
+      margin: 0;
+    }
 
+    .container {
+      display: flex;
+      background-color: black;
+      width: 100%;
+      height: 100vh;
+    }
+
+    .color {
+      height: 100%;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-end;
+      cursor: pointer;
+      transition: 0.2s opacity;
+    }
+
+    .color:active {
+      opacity: 0.8;
+    }
+
+    .color span {
+      font-size: 3rem;
+      margin-bottom: 2rem;
+      color: white;
+      text-shadow: 2px 2px black;
+    }
+
+    #form {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    #form input[type="text"] {
+      font-size: 2rem;
+      outline: 0;
+      border: 2px solid white;
+      background-color: #f2f2f2;
+      padding: 20px;
+      width: 400px;
+    }
+
+    .btn {
+      background-color: #4caf50;
+      padding: 20px;
+      font-size: 2rem;
+      color: white;
+      border: 2px solid white;
+      transition: 0.2s opacity;
+    }
+
+    .btn:hover {
+      opacity: 0.8;
+      cursor: pointer;
+    }
   </style>
 </head>
 
 <body>
+
+  <div class="container"></div>
+
   <form id="form">
     <input type="text" name="query">
-    <button type="submit">Submit</button>
+    <button class="btn" type="submit">Submit</button>
   </form>
 
   <script>
-    const form = document.querySelector("#form")
+    const form = document.querySelector("#form");
+
     form.addEventListener("submit", (e) => {
       e.preventDefault()
-      const query = form.elements.query.value
-      fetch(`/palette`, {
+      
+      const query = form.elements.query.value;
+      fetch("/palette", {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({ query })
+        body: new URLSearchParams({
+          query: query,
+        }),
       })
-      .then(response => response.json())
-      .then(colors => {
-        console.log(colors);
-      })
+        .then((response) => response.json())
+        .then((data) => {
+          const colors = data.colors;
+          const container = document.querySelector(".container");
+          createColorBoxes(colors, container);
+
+          container.innerHTML = "";
+          for (const color of colors) {
+            const div = document.createElement("div");
+            div.classList.add("color");
+            div.style.backgroundColor = color;
+            div.style.width = `calc(100%/ ${colors.length})`;
+
+            div.addEventListener("click", function () {
+              navigator.clipboard.writeText(color);
+            });
+
+            const span = document.createElement("span");
+            span.textContent = color;
+            div.appendChild(span);
+            container.appendChild(div);
+          }
+        });
     })
   </script>
 </body>
