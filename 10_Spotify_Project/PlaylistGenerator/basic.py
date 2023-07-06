@@ -8,9 +8,12 @@ config = dotenv_values(".env")
 
 openai.api_key = config["OPENAI_API_KEY"]
 
-parser = argparse.ArgumentParser(description="Simple command line song utility")
-parser.add_argument("-p", type=str, default="fun songs", help="The prompt to describe the playlist")
-parser.add_argument("-n", type=int, default=8, help="The number of songs to add to the playlist")
+parser = argparse.ArgumentParser(
+    description="Simple command line song utility")
+parser.add_argument("-p", type=str, default="fun songs",
+                    help="The prompt to describe the playlist")
+parser.add_argument("-n", type=int, default=8,
+                    help="The number of songs to add to the playlist")
 
 args = parser.parse_args()
 
@@ -30,7 +33,7 @@ def get_playlist(prompt, count=8):
         You should generate a list of songs and their artists according to a text prompt.
         Your should return a JSON array, where each element follows this format: {"song": <song_title>, "artist": <artist_name>}
         """
-        },
+         },
         {"role": "user", "content": "Generate a playlist of 5 songs based on this prompt: super super sad songs"},
         {"role": "assistant", "content": example_json},
         {"role": "user", "content": f"Generate a playlist of {count} songs based on this prompt: {prompt}"},
@@ -38,12 +41,13 @@ def get_playlist(prompt, count=8):
 
     response = openai.ChatCompletion.create(
         messages=messages,
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         max_tokens=400
     )
 
     playlist = json.loads(response["choices"][0]["message"]["content"])
     return playlist
+
 
 playlist = get_playlist(args.p, args.n)
 print(playlist)
@@ -75,5 +79,5 @@ created_playlist = sp.user_playlist_create(
     name=args.p
 )
 
-sp.user_playlist_add_tracks(current_user["id"], created_playlist["id"], track_ids)
-
+sp.user_playlist_add_tracks(
+    current_user["id"], created_playlist["id"], track_ids)

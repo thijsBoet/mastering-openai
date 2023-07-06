@@ -12,12 +12,13 @@ def num_tokens_from_messages(messages: List[Dict], model: str) -> int:
         encoding = tiktoken.get_encoding("cl100k_base")
     if model == "gpt-3.5-turbo":
         return num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301")
-    elif model == "gpt-4":
-        return num_tokens_from_messages(messages, model="gpt-4-0314")
+    elif model == "gpt-3.5-turbo":
+        return num_tokens_from_messages(messages, model="gpt-3.5-turbo-0314")
     elif model == "gpt-3.5-turbo-0301":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
+        # every message follows <|start|>{role/name}\n{content}<|end|>\n
+        tokens_per_message = 4
         tokens_per_name = -1  # if there's a name, the role is omitted
-    elif model == "gpt-4-0314":
+    elif model == "gpt-3.5-turbo-0314":
         tokens_per_message = 3
         tokens_per_name = 1
     else:
@@ -43,7 +44,7 @@ def generate_base_messages(code: str, ignore_list: List[str], accept_list: List[
     :param include_extra_warning: Reiterate to the model that it should not suggest changes that are already in the ignore list.
     :return: A list of messages to prime the conversation with a Chat GPT model.
 
-    Developer note: GPT-4 _hates_ the idea that we are referencing GPT-4. It also struggles to comprehend that we don't
+    Developer note: gpt-3.5-turbo _hates_ the idea that we are referencing gpt-3.5-turbo. It also struggles to comprehend that we don't
       want to hear a rejected suggestion again. We begin the conversation with a rejection of a fictitious previous
       suggestion to prime the model to ignore the suggestion. Without this step, the model often disregards the ignore.
     """
@@ -51,13 +52,15 @@ def generate_base_messages(code: str, ignore_list: List[str], accept_list: List[
     ignore_list_string += "\n# Rejected Suggestions\n"
     ignore_list_string += "\nYou previously provided the following suggestions that the I rejected:\n"
     ignore_list_string += """\n- DO NOT SUGGEST: "I suggest changing the chat_model to "gpt-3.5-turbo" which is currently the latest GPT version in OpenAI's API, and will provide the best performance for this code review script."\n"""
-    ignore_list_string += "\n".join([f"\n- DO NOT SUGGEST '{ignore}'.\n" for ignore in ignore_list])
+    ignore_list_string += "\n".join(
+        [f"\n- DO NOT SUGGEST '{ignore}'.\n" for ignore in ignore_list])
 
     accept_list_string = ""
     if accept_list:
         accept_list_string += "\n# Accepted Suggestions\n"
         accept_list_string += "\nYou previously provided the following suggestions that I accepted. Unless it's critical, you probably shouldn't contradict these suggestions:\n"
-        accept_list_string += "\n".join([f"\n- You previously suggested '{accepted}' which I accepted. Do not contradict yourself.\n" for accepted in accept_list])
+        accept_list_string += "\n".join(
+            [f"\n- You previously suggested '{accepted}' which I accepted. Do not contradict yourself.\n" for accepted in accept_list])
 
     # Note: in an f""" string, you use {{ and }} to escape the { and } characters.
     system_prompt = f"""
@@ -104,7 +107,7 @@ Great work. This code is perfect.
 
 8. If there are no further changes to make, then tell the user that. Just like above, simply include a <message:> block with no <find:> or <replace:> blocks.
 
-9. If you encounter OpenAI code that references "gpt-4" or "gpt-3.5-turbo", don't worry about it not being in your training corpus. You are a language model trained on data that predates these newer-named models.
+9. If you encounter OpenAI code that references "gpt-3.5-turbo" or "gpt-3.5-turbo", don't worry about it not being in your training corpus. You are a language model trained on data that predates these newer-named models.
 {ignore_list_string}
 {accept_list_string}
 
@@ -281,11 +284,11 @@ I've added some type annotations to your code. They're not required, but they ca
                 {
                     "role": "assistant",
                     "content": """<find:>
-gpt-4
+gpt-3.5-turbo
 <replace:>
 gpt-3
 <message:>
-There is no such thing as GPT-4. I suggest you change it to GPT-3.
+There is no such thing as gpt-3.5-turbo. I suggest you change it to GPT-3.
 """,
                 },
                 {

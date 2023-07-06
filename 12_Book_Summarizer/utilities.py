@@ -21,12 +21,13 @@ def num_tokens_from_messages(messages, model):
         encoding = tiktoken.get_encoding("cl100k_base")
     if model == "gpt-3.5-turbo":
         return num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301")
-    elif model == "gpt-4":
-        return num_tokens_from_messages(messages, model="gpt-4-0314")
+    elif model == "gpt-3.5-turbo":
+        return num_tokens_from_messages(messages, model="gpt-3.5-turbo-0314")
     elif model == "gpt-3.5-turbo-0301":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
+        # every message follows <|start|>{role/name}\n{content}<|end|>\n
+        tokens_per_message = 4
         tokens_per_name = -1  # if there's a name, the role is omitted
-    elif model == "gpt-4-0314":
+    elif model == "gpt-3.5-turbo-0314":
         tokens_per_message = 3
         tokens_per_name = 1
     else:
@@ -66,7 +67,8 @@ def take_tokens(
     enc = tiktoken.encoding_for_model(model)
     current_token_count = num_tokens_from_messages("", model=model)
     sections = text.split(division_point)
-    non_empty_sections = [section for section in sections if section.strip() != ""]
+    non_empty_sections = [
+        section for section in sections if section.strip() != ""]
 
     for i, section in enumerate(non_empty_sections):
         if current_token_count + len(enc.encode(section)) >= max_token_quantity:
@@ -78,13 +80,14 @@ def take_tokens(
 
                 # Thus, we return the first `max_token_quantity` tokens as a chunk, even if it ends on an
                 # awkward split.
-                max_token_chunk = enc.decode(enc.encode(text)[:max_token_quantity])
-                remainder = text[len(max_token_chunk) :]
+                max_token_chunk = enc.decode(
+                    enc.encode(text)[:max_token_quantity])
+                remainder = text[len(max_token_chunk):]
                 return max_token_chunk, remainder
             else:
                 # Otherwise, return the accumulated text as a chunk.
                 emit = division_point.join(sections[: i - 1])
-                remainder = division_point.join(sections[i - 1 :])
+                remainder = division_point.join(sections[i - 1:])
                 return emit, remainder
         else:
             current_token_count += len(enc.encode(section))
@@ -98,7 +101,8 @@ def split_text_into_sections(text: str, max_token_quantity: int, division_point:
     # but if that can't be done, then fall back to a lower precedence division point.
     sections = []
     while text:
-        section, text = take_tokens(text, max_token_quantity, division_point, model)
+        section, text = take_tokens(
+            text, max_token_quantity, division_point, model)
         sections.append(section)
     return sections
 
@@ -137,8 +141,10 @@ def memoize_to_file(cache_file="cache.json"):
 
         def wrapped(*args):
             # Compute the hash of the argument
-            arg_hash = hashlib.sha256(repr(tuple(args)).encode("utf-8")).hexdigest()
-            print("ASSESSING HASH OF: ", repr(tuple(args[1:])), hash(str(args[0])))
+            arg_hash = hashlib.sha256(
+                repr(tuple(args)).encode("utf-8")).hexdigest()
+            print("ASSESSING HASH OF: ", repr(
+                tuple(args[1:])), hash(str(args[0])))
             # Check if the result is already cached
             if arg_hash in cache:
                 print(f"Cached result found for {arg_hash}. Returning it.")

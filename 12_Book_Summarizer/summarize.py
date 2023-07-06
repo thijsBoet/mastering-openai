@@ -1,4 +1,5 @@
 from __future__ import division
+from dataclasses import dataclass
 import os
 import re
 import textwrap
@@ -31,23 +32,27 @@ def gpt_summarize(text: str, target_summary_size: int) -> str:
             tries += 1
             result = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=summarization_prompt_messages(text, target_summary_size),
+                messages=summarization_prompt_messages(
+                    text, target_summary_size),
             )
             actual_tokens += result.usage.total_tokens
             return "[[[" + result.choices[0].message.to_dict()["content"] + "]]]"
         except (APIConnectionError, APIError, RateLimitError) as e:
             if tries >= MAX_ATTEMPTS:
-                print(f"OpenAI exception after {MAX_ATTEMPTS} tries. Aborting. {e}")
+                print(
+                    f"OpenAI exception after {MAX_ATTEMPTS} tries. Aborting. {e}")
                 raise e
             if hasattr(e, "should_retry") and not e.should_retry:
-                print(f"OpenAI exception with should_retry false. Aborting. {e}")
+                print(
+                    f"OpenAI exception with should_retry false. Aborting. {e}")
                 raise e
             else:
                 print(f"Summarize failed (Try {tries} of {MAX_ATTEMPTS}). {e}")
                 random_wait = random.random() * 4.0 + 1.0  # Wait between 1 and 5 seconds
-                random_wait = random_wait * tries  # Scale that up by the number of tries (more tries, longer wait)
+                # Scale that up by the number of tries (more tries, longer wait)
+                random_wait = random_wait * tries
                 time.sleep(random_wait * tries)
-from dataclasses import dataclass
+
 
 # Using repr allows us to use this is in our memoization function.
 # Specifying frozen=True causes python to generate a __hash__ and __eq__ function for us.
@@ -64,15 +69,14 @@ def summarization_token_parameters(target_summary_size: int, model_context_size:
     """
     Compute the number of tokens that should be used for the context window, the target summary, and the base prompt.
     """
-    base_prompt_size = num_tokens_from_messages(summarization_prompt_messages("", target_summary_size), model=model_name)
-    summary_input_size = model_context_size - (base_prompt_size + target_summary_size)
+    base_prompt_size = num_tokens_from_messages(
+        summarization_prompt_messages("", target_summary_size), model=model_name)
+    summary_input_size = model_context_size - \
+        (base_prompt_size + target_summary_size)
     return SummarizationParameters(
         target_summary_size=target_summary_size,
         summary_input_size=summary_input_size,
     )
-
-import re
-
 
 
 @memoize_to_file(cache_file="cache.json")
@@ -84,24 +88,26 @@ def summarize(
 ) -> str:
     # Shorten text for our console logging
     text_to_print = re.sub(r' +\|\n\|\t', ' ', text).replace("\n", "")
-    print(f"\nSummarizing {len(enc.encode(text))}-token text: {text_to_print[:60]}{'...' if len(text_to_print) > 60 else ''}")
+    print(
+        f"\nSummarizing {len(enc.encode(text))}-token text: {text_to_print[:60]}{'...' if len(text_to_print) > 60 else ''}")
 
     if len(enc.encode(text)) <= token_quantities.target_summary_size:
         # If the text is already short enough, just return it
         return text
     elif len(enc.encode(text)) <= token_quantities.summary_input_size:
         summary = gpt_summarize(text, token_quantities.target_summary_size)
-        print(f"Summarized {len(enc.encode(text))}-token text into {len(enc.encode(summary))}-token summary: {summary[:250]}{'...' if len(summary) > 250 else ''}")
+        print(
+            f"Summarized {len(enc.encode(text))}-token text into {len(enc.encode(summary))}-token summary: {summary[:250]}{'...' if len(summary) > 250 else ''}")
         return summary
     else:
         # The text is too long, split it into sections and summarize each section
-        split_input = split_text_into_sections(text, token_quantities.summary_input_size, division_point, model_name)
+        split_input = split_text_into_sections(
+            text, token_quantities.summary_input_size, division_point, model_name)
 
-        summaries = [summarize(x, token_quantities, division_point, model_name) for x in split_input]
+        summaries = [summarize(
+            x, token_quantities, division_point, model_name) for x in split_input]
 
         return summarize("\n\n".join(summaries), token_quantities, division_point, model_name)
-
-
 
 
 @memoize_to_file(cache_file="cache.json")
@@ -140,8 +146,6 @@ The summaries are as follows: {summaries_joined}
     return result.choices[0].message.to_dict()["content"]
 
 
-
-
 model_name = "gpt-3.5-turbo"
 enc = tiktoken.encoding_for_model(model_name)
 
@@ -175,7 +179,8 @@ MAX_ATTEMPTS = 3
 
 num_tokens = len(enc.encode(book))
 cost_per_token = 0.002 / 1000
-print(f"As of Q1 2023, the approximate price of this summary will somewhere be on the order of: ${num_tokens * cost_per_token:.2f}")
+print(
+    f"As of Q1 2023, the approximate price of this summary will somewhere be on the order of: ${num_tokens * cost_per_token:.2f}")
 
 division_point = "."
 
@@ -189,8 +194,6 @@ division_point = "."
 # print(summary)
 
 
-
-
 summaries: Dict[int, str] = {}
 target_summary_sizes = [500, 750, 1000]
 for target_summary_size in target_summary_sizes:
@@ -198,18 +201,16 @@ for target_summary_size in target_summary_sizes:
     summaries[target_summary_size] = (
         summarize(
             book,
-            summarization_token_parameters(target_summary_size=target_summary_size, model_context_size=4097),
+            summarization_token_parameters(
+                target_summary_size=target_summary_size, model_context_size=4097),
             division_point,
             model_name,
         )
         .replace("[[[", "")
         .replace("]]]", "")
-        
+
     )
 print(summaries)
 
 
-print(synthesize_summaries(list(summaries.values()), "gpt-4"))
-
-
-
+print(synthesize_summaries(list(summaries.values()), "gpt-3.5-turbo"))

@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(
-    __name__, 
+    __name__,
     static_url_path='',
     static_folder='static',
 )
@@ -105,7 +105,7 @@ def generate_cyoa_next_message(messages) -> Mapping:
 
     # The ChatCompletion API has the gpt-3.5-turbo model available to it. As of Q1 2023, it's 1/10th the cost of text-davinci-003 at $0.002/1K tokens.
     chat_response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=messages_payload,
         frequency_penalty=1.0,
         temperature=0.8,

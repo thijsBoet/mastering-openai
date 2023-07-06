@@ -21,7 +21,8 @@ def get_file_with_zip_fallback(file_name: str, zip_file_name: str) -> str:
             with zipfile.ZipFile(zip_file_name, "r") as zip_ref:
                 zip_ref.extractall()
         else:
-            raise ValueError(f"Neither {file_name} nor {zip_file_name} were found in the current directory.")
+            raise ValueError(
+                f"Neither {file_name} nor {zip_file_name} were found in the current directory.")
 
     # Read the contents of the CSV file
     with open(file_name, "r", encoding="utf-8") as file:
@@ -39,12 +40,13 @@ def num_tokens_from_messages(messages: List[Dict], model: str) -> int:
         encoding = tiktoken.get_encoding("cl100k_base")
     if model == "gpt-3.5-turbo":
         return num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301")
-    elif model == "gpt-4":
-        return num_tokens_from_messages(messages, model="gpt-4-0314")
+    elif model == "gpt-3.5-turbo":
+        return num_tokens_from_messages(messages, model="gpt-3.5-turbo-0314")
     elif model == "gpt-3.5-turbo-0301":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
+        # every message follows <|start|>{role/name}\n{content}<|end|>\n
+        tokens_per_message = 4
         tokens_per_name = -1  # if there's a name, the role is omitted
-    elif model == "gpt-4-0314":
+    elif model == "gpt-3.5-turbo-0314":
         tokens_per_message = 3
         tokens_per_name = 1
     else:
@@ -68,16 +70,19 @@ def memoize_to_sqlite(filename: str = "cache.db"):
     The database connection is persisted across calls.
     """
     db_conn = sqlite3.connect(filename)
-    db_conn.execute("CREATE TABLE IF NOT EXISTS cache (hash TEXT PRIMARY KEY, result TEXT)")
+    db_conn.execute(
+        "CREATE TABLE IF NOT EXISTS cache (hash TEXT PRIMARY KEY, result TEXT)")
 
     def memoize(func):
         def wrapped(*args):
             # Compute the hash of the argument
-            arg_hash = hashlib.sha256(repr(tuple(args)).encode("utf-8")).hexdigest()
+            arg_hash = hashlib.sha256(
+                repr(tuple(args)).encode("utf-8")).hexdigest()
 
             # Check if the result is already cached
             cursor = db_conn.cursor()
-            cursor.execute("SELECT result FROM cache WHERE hash = ?", (arg_hash,))
+            cursor.execute(
+                "SELECT result FROM cache WHERE hash = ?", (arg_hash,))
             row = cursor.fetchone()
             if row is not None:
                 print(f"Cached result found for {arg_hash}. Returning it.")
@@ -85,7 +90,8 @@ def memoize_to_sqlite(filename: str = "cache.db"):
 
             # Compute the result and cache it
             result = func(*args)
-            cursor.execute("INSERT INTO cache (hash, result) VALUES (?, ?)", (arg_hash, json.dumps(result)))
+            cursor.execute(
+                "INSERT INTO cache (hash, result) VALUES (?, ?)", (arg_hash, json.dumps(result)))
             db_conn.commit()
 
             return result
@@ -100,7 +106,8 @@ def memoize_to_sqlite(filename: str = "cache.db"):
 @retry(
     wait=wait_random_exponential(multiplier=1, max=30),
     stop=stop_after_attempt(3),
-    retry=retry_if_exception_type(APIConnectionError) | retry_if_exception_type(APIError) | retry_if_exception_type(RateLimitError),
+    retry=retry_if_exception_type(APIConnectionError) | retry_if_exception_type(
+        APIError) | retry_if_exception_type(RateLimitError),
 )
 def get_embedding(text: str) -> List[float]:
     """
@@ -110,7 +117,8 @@ def get_embedding(text: str) -> List[float]:
     # replace newlines, which can negatively affect performance.
     text_no_newlines = text.replace("\n", " ")
     print(f"Computing embedding for {text_no_newlines[:50]}")
-    response = openai.Embedding.create(input=text_no_newlines, model="text-embedding-ada-002")
+    response = openai.Embedding.create(
+        input=text_no_newlines, model="text-embedding-ada-002")
     embeddings = response["data"][0]["embedding"]
     return embeddings
 
@@ -144,9 +152,11 @@ def get_n_nearest_neighbors(query_embedding: List[float], embeddings: Dict[T, Li
 
     target_embedding = np.array(query_embedding)
 
-    similarities = [(segment, cosine_similarity(target_embedding, np.array(embedding))) for segment, embedding in embeddings.items()]
+    similarities = [(segment, cosine_similarity(target_embedding, np.array(
+        embedding))) for segment, embedding in embeddings.items()]
 
     # Sort by similarity and get the top n results
-    nearest_neighbors = sorted(similarities, key=lambda x: x[1], reverse=True)[:n]
+    nearest_neighbors = sorted(
+        similarities, key=lambda x: x[1], reverse=True)[:n]
 
     return nearest_neighbors
